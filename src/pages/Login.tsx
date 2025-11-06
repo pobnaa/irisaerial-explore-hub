@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, LogIn, UserPlus } from "lucide-react";
 import { Session } from "@supabase/supabase-js";
+import BackButton from "@/components/BackButton";
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -22,7 +23,7 @@ const Login = () => {
       (event, session) => {
         setSession(session);
         if (session) {
-          navigate("/dashboard");
+          navigate("/profile");
         }
       }
     );
@@ -30,7 +31,7 @@ const Login = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) {
-        navigate("/dashboard");
+        navigate("/profile");
       }
     });
 
@@ -49,17 +50,21 @@ const Login = () => {
         });
         if (error) throw error;
         toast.success("Login successful!");
+        navigate("/profile");
       } else {
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
+            // after email confirmation redirect to profile
+            emailRedirectTo: `${window.location.origin}/profile`,
           },
         });
         if (error) throw error;
         toast.success("Sign up successful! You can now log in.");
         setIsLogin(true);
+        // navigate directly to profile after successful sign up (session may be created)
+        navigate("/profile");
       }
     } catch (error: any) {
       toast.error(error.message || "Authentication failed");
@@ -70,6 +75,9 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--gradient-dark)] p-4 relative overflow-hidden">
+      <div className="absolute left-4 top-4 z-20">
+        <BackButton />
+      </div>
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-20 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-pulse" />
@@ -78,16 +86,19 @@ const Login = () => {
 
       <Card className="w-full max-w-md p-8 backdrop-blur-xl bg-card/70 border-border/50 relative z-10 shadow-2xl">
         <div className="text-center mb-8">
-          <div className="inline-block p-3 bg-primary/10 rounded-2xl mb-4">
-            <div className="w-12 h-12 bg-[var(--gradient-primary)] rounded-xl flex items-center justify-center">
-              <span className="text-2xl font-bold text-primary-foreground">IA</span>
-            </div>
+          <div className="inline-block p-2 bg-primary/10 rounded-2xl mb-1">
+            {/* Replace this image file with your screenshot placed in `public/` */}
+            <img
+              src="/Screenshot 2025-11-06 200932.png"
+              alt="IA logo"
+              className="w-12 h-12 object-cover rounded-xl"
+            />
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mb-2">
-            Iris Aerial
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mb-0">
+            akshaa
           </h1>
           <p className="text-muted-foreground">
-            {isLogin ? "Welcome back" : "Create your account"}
+            {isLogin ? "Iris Aerial Innovations Pvt. Ltd." : "Create your account"}
           </p>
         </div>
 
