@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { LogOut, Play, Film, Lock } from "lucide-react";
+import { LogOut, Play, Film, Lock, DownloadCloud } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { Session } from "@supabase/supabase-js";
 
@@ -25,7 +25,7 @@ const categories = [
       {
         id: 2,
         title: "Roadways Survey",
-        url: "/Final 3.mp4",
+        url: "/Jind Bypass [2.7 Km].mp4",
       },
       {
         id: 1,
@@ -41,22 +41,53 @@ const categories = [
 const videoTargets: Record<string, string[]> = {
   "Roadways Survey": [
     "Default",
-    "Road Surface",
     "Trees",
-    "Potholes",
-    "Vehicles",
+    "Structures",
+    "Bridges",
+    "Open Fields",
+    "ROB",
+    "Signboards",
+    "ELectric Poles",
+    "Water Bodies",
+    "Urban Areas",
+    "Railway Tracks",
+    "Railway Platforms",
+    "Railway Stations",
+    "Subways",
+    "Speed Breakers / Rumble Strips",
+    "Pedestrian Crossings",
+   
   ],
   "Railway Track Survey": [
     "Default",
-    "Track Integrity",
-    "Signals",
-    "Overhead Lines",
-    "Stations",
+   "Trees",
+    "Structures",
+    "Bridges",
+    "Open Fields",
+    "ROB",
+    "Signboards",
+    "ELectric Poles",
+    "Water Bodies",
+    "Urban Areas",
+    "Railway Tracks",
+    "Railway Platforms",
+    "Railway Stations",
+    "Subways",
+    "Speed Breakers / Rumble Strips",
+    "Pedestrian Crossings",
   ],
+};
+
+// Optional mapping from video title -> pre-generated PDF report located in /public/reports/
+const reportFiles: Record<string, string> = {
+  "Jind Bypass [2.7 Km]": "/reports/Akshaa 1.0_Asset_Detection_Report-Jind Bypass [2.7 Km].pdf",
+  "Highway 4 Lane [3.8 Km]": "/reports/Akshaa 1.0_Asset_Detection_Report-Highway 4 Lane [3.8 Km].pdf",
 };
 
 const Dashboard = () => {
   const [session, setSession] = useState<Session | null>(null);
+  // pro flag - placeholder until we wire to real subscription info
+  const [isPro, setIsPro] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState("innovation");
   const [currentVideo, setCurrentVideo] = useState(categories[0].videos[0]);
   const [viewMode, setViewMode] = useState("default"); // only this will be active
@@ -123,12 +154,77 @@ const Dashboard = () => {
     return (
       videoTargets[currentVideo.title] || [
         "Default",
-        "Object A",
-        "Object B",
-        "Object C",
+        "Trees",
+        "Structures",
+        "Bridges",
+        "Open Fields",
+        "ROB",
+        "Signboards",
+        "Electric Poles",
+        "Water Bodies",
+        "Urban Areas",
+        "Railway Tracks",
+        "Railway Platforms",
+        "Railway Stations",
+        "Subways",
+        "Speed Breakers / Rumble Strips",
+        "Pedestrian Crossings",
+        "Potholes",
+        "Vehicles",
       ]
     );
   }, [currentVideo]);
+
+  // bottom report download helper
+  const downloadBottomReport = async () => {
+    try {
+      // If there's a pre-generated PDF report for this video, download that instead
+      const mapped = reportFiles[currentVideo.title];
+      if (mapped) {
+        try {
+          const res = await fetch(mapped);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          // Use a safe filename
+          const safeName = mapped.split("/").pop() || `${currentVideo.title}-report.pdf`;
+          a.download = safeName;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+          toast.success("Report downloaded");
+          return;
+        } catch (err) {
+          console.warn("Failed to fetch mapped report, falling back to CSV:", err);
+          // fallthrough to CSV generation
+        }
+      }
+
+      // Fallback: generate a simple CSV of targets
+      const headers = ["video", "target"];
+      const rows = currentTargets.map((t) => [currentVideo.title, t]);
+      const csv = [headers, ...rows]
+        .map((row) => row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+        .join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${currentVideo.title.replace(/\s+/g, "-")}-targets.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Targets report downloaded");
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to generate report");
+    }
+  };
+ 
 
   return (
     <div className="min-h-screen bg-[var(--gradient-dark)] p-4">
@@ -146,7 +242,7 @@ const Dashboard = () => {
             </div>
             <div>
               <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                akshaa
+                akshaa v1.0
               </h1>
               <p className="text-xs text-muted-foreground">
                 Iris Aerial Innovation Pvt. Ltd.
@@ -159,8 +255,8 @@ const Dashboard = () => {
           </Button>
         </header>
 
-        {/* Main Content */}
-        <div className="grid lg:grid-cols-3 gap-6">
+  {/* Main Content */}
+  <div className="grid lg:grid-cols-3 gap-6">
           {/* Video Player - Large Section */}
           <div className="lg:col-span-2">
             <Card className="p-6 bg-card/70 backdrop-blur-sm border-border/50">
@@ -197,6 +293,21 @@ const Dashboard = () => {
                           {incomingSurvey}
                         </span>
                       ) : null}
+                    </div>
+                  </div>
+
+                  {/* Footer - single centered Download Report (Pro only) */}
+                  <div className="mt-6 flex justify-center">
+                    <div className="max-w-7xl w-full px-4">
+                      <div className="flex justify-center">
+                        <Button
+                          onClick={downloadBottomReport}
+                          className="gap-2 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:brightness-95 shadow-md"
+                        >
+                          <DownloadCloud className="w-4 h-4" />
+                          Download Report
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -237,6 +348,37 @@ const Dashboard = () => {
                         })}
                       </SelectContent>
                     </Select>
+                    {/* Download targets report (Pro only) */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        if (!isPro) {
+                          toast("Pro feature — upgrade to download reports");
+                          return;
+                        }
+                        // Generate a small CSV of current targets
+                        const headers = ["video", "target"];
+                        const rows = currentTargets.map((t) => [currentVideo.title, t]);
+                        const csv = [headers, ...rows]
+                          .map((row) => row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+                          .join("\n");
+                        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `${currentVideo.title.replace(/\s+/g, "-")}-targets.csv`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        URL.revokeObjectURL(url);
+                        toast.success("Targets report downloaded");
+                      }}
+                      disabled={!isPro}
+                      className={`${!isPro ? "opacity-40 cursor-not-allowed" : ""}`}
+                    >
+                      <DownloadCloud className="w-4 h-4" />
+                    </Button>
                   </div>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Lock className="w-3 h-3" />
@@ -280,28 +422,82 @@ const Dashboard = () => {
                     className="mt-4 space-y-2"
                   >
                     {category.videos.map((video) => (
-                      <button
+                      <div
                         key={video.id}
                         onClick={() => {
                           setCurrentVideo(video);
                           setViewMode("default"); // reset to default when switching video
                         }}
-                        className={`w-full text-left p-3 rounded-lg transition-all ${
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            setCurrentVideo(video);
+                            setViewMode("default");
+                          }
+                        }}
+                        className={`w-full p-3 rounded-lg transition-all flex items-center justify-between cursor-pointer ${
                           currentVideo.id === video.id
                             ? "bg-primary/20 border border-primary"
                             : "bg-secondary/30 hover:bg-secondary/50 border border-transparent"
                         }`}
                       >
-                        <p className="text-sm font-medium text-foreground line-clamp-1">
-                          {video.title}
-                        </p>
-                      </button>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-foreground line-clamp-1">
+                            {video.title}
+                          </p>
+                        </div>
+
+                        {/* Per-video Download Report (show for Railway Track Survey; Pro-only) */}
+                        {video.title === "Railway Track Survey" ? (
+                          <div className="ml-3">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                // prevent outer click (which selects video)
+                                e.stopPropagation();
+                                if (!isPro) {
+                                  toast.error("Pro feature — upgrade to download reports");
+                                  return;
+                                }
+                                try {
+                                  const targets = videoTargets[video.title] || ["Default"];
+                                  const headers = ["video", "target"];
+                                  const rows = targets.map((t) => [video.title, t]);
+                                  const csv = [headers, ...rows]
+                                    .map((row) => row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+                                    .join("\n");
+                                  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement("a");
+                                  a.href = url;
+                                  a.download = `${video.title.replace(/\s+/g, "-")}-report.csv`;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  a.remove();
+                                  URL.revokeObjectURL(url);
+                                  toast.success("Video report downloaded");
+                                } catch (err) {
+                                  console.error(err);
+                                  toast.error("Failed to generate report");
+                                }
+                              }}
+                              disabled={!isPro}
+                              className={`${!isPro ? "opacity-40 cursor-not-allowed" : ""}`}
+                            >
+                              <DownloadCloud className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ) : null}
+                      </div>
                     ))}
                   </TabsContent>
                 ))}
               </Tabs>
             </Card>
           </div>
+          
         </div>
       </div>
     </div>

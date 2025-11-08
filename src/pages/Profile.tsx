@@ -8,8 +8,11 @@ import { toast } from "sonner";
 import { LogOut } from "lucide-react";
 
 const sampleVideos = [
-  { id: 1, title: "Railway Track Survey", url: "/rail1.mp4", survey: "Road Survey" },
-  { id: 2, title: "Roadways Survey", url: "/Final 3.mp4", survey: "Road Survey" },
+  { id: 1, title: "Railway Track Survey", url: "/rail1.mp4", survey: "Train Survey" },
+  { id: 4, title: "Rail 4-4", url: "/rail4-4.mp4", survey: "Train Survey" },
+  { id: 5, title: "Rail 3-3", url: "/rail3-3.mp4", survey: "Train Survey" },
+  { id: 6, title: "Jind Bypass [2.7 Km]", url: "/Jind Bypass [2.7 Km].mp4", survey: "Road Survey" },
+  { id: 7, title: "Highway 4 Lane [3.8 Km]", url: "/Highway 4 Lane [3.8 Km].mp4", survey: "Road Survey" },
 ];
 
 const Profile = () => {
@@ -51,6 +54,31 @@ const Profile = () => {
     navigate("/dashboard", { state: { video, surveyType: video.survey || "Road Survey" } });
   };
 
+  // Prepare and download a CSV report of recent videos
+  const downloadReport = () => {
+    try {
+      const headers = ["id", "title", "url", "survey"];
+      const rows = recent.map((r) => [r.id, r.title, r.url, r.survey || "Road Survey"]);
+      const csv = [headers, ...rows]
+        .map((row) => row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+        .join("\n");
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "iris-report.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Report downloaded");
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to generate report");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[var(--gradient-dark)] p-4">
       <div className="max-w-6xl mx-auto">
@@ -67,7 +95,7 @@ const Profile = () => {
             </div>
             <div>
               <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                akshaa
+                akshaa v1.0
               </h1>
               <p className="text-xs text-muted-foreground">Iris Aerial Innovation Pvt. Ltd.</p>
             </div>
@@ -92,11 +120,33 @@ const Profile = () => {
                 Profile Settings
               </button>
               <button
+                className={`w-full text-left px-3 py-2 rounded hover:bg-secondary/20`}
+                onClick={() => setTab("profile")}
+              >
+                Settings
+              </button>
+              <button
+                className="w-full text-left px-3 py-2 rounded hover:bg-secondary/20"
+                onClick={() => window.open("https://irisaerial.in/subscription", "_blank")}
+              >
+                Manage Subscription
+              </button>
+              <button
                 className={`w-full text-left px-3 py-2 rounded ${tab === "about" ? "bg-primary/10" : "hover:bg-secondary/20"}`}
                 onClick={() => setTab("about")}
               >
-                About Us
+                About akshaa
               </button>
+              <a
+                href="https://irisaerial.in/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block"
+              >
+                <div className="w-full text-left px-3 py-2 rounded hover:bg-secondary/20">
+                  About Iris Aerial Innovations
+                </div>
+              </a>
             </div>
           </Card>
         </aside>
@@ -126,7 +176,7 @@ const Profile = () => {
                       onChange={(e) => setUploadSurvey(e.target.value)}
                     >
                     <option>Road Survey</option>
-                    <option>Train Survey</option>
+                    <option>Rail Survey</option>
                   </select>
 
                   <Button
@@ -177,6 +227,9 @@ const Profile = () => {
           )}
         </main>
         </div>
+
+        {/* Bottom report CTA */}
+        
       </div>
     </div>
   );
